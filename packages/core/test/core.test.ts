@@ -18,6 +18,12 @@ describe('RepoDoc Core Context', () => {
     expect(context.config.documentation.language).toBe('en');
     expect(context.permissions).toBeDefined();
     expect(context.knowledge).toBeDefined();
+    expect(context.repository).toBeDefined();
+
+    // Verify discovery through context
+    const structure = await context.discover();
+    expect(structure.isMonorepo).toBe(true);
+    expect(structure.totalFiles).toBeGreaterThan(5);
 
     // Verify knowledge repository works inside context
     const item: KnowledgeItem = {

@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import { Logger, SilentLogger, ConsoleLogger } from '@repodoc/shared';
 import { loadProjectConfig, ProjectConfig } from '@repodoc/configuration';
 import { PermissionsEngine } from '@repodoc/permissions';
+import { RepositoryEngine, ProjectStructure } from '@repodoc/repository';
 import {
   SqliteDatabaseConnection,
   MigrationManager,
@@ -20,6 +21,7 @@ export class RepoDocContext {
   public readonly projectRoot: string;
   public readonly config: ProjectConfig;
   public readonly permissions: PermissionsEngine;
+  public readonly repository: RepositoryEngine;
   public readonly knowledge: KnowledgeRepository;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
@@ -28,6 +30,7 @@ export class RepoDocContext {
     projectRoot: string,
     config: ProjectConfig,
     permissions: PermissionsEngine,
+    repository: RepositoryEngine,
     knowledge: KnowledgeRepository,
     db: DatabaseConnection,
     logger: Logger
@@ -35,6 +38,7 @@ export class RepoDocContext {
     this.projectRoot = projectRoot;
     this.config = config;
     this.permissions = permissions;
+    this.repository = repository;
     this.knowledge = knowledge;
     this.db = db;
     this.logger = logger;
@@ -53,7 +57,14 @@ export class RepoDocContext {
       logger,
     });
 
-    // 3. Initialize SQLite Persistence & run migrations
+    // 3. Initialize Repository Engine
+    const repository = new RepositoryEngine({
+      projectRoot,
+      config,
+      logger,
+    });
+
+    // 4. Initialize SQLite Persistence & run migrations
     let dbPath = options.databasePath;
     if (!dbPath) {
       const repodocDir = path.join(projectRoot, '.repodoc');
@@ -67,7 +78,7 @@ export class RepoDocContext {
 
     const knowledge = new KnowledgeRepository(db);
 
-    return new RepoDocContext(projectRoot, config, permissions, knowledge, db, logger);
+    return new RepoDocContext(projectRoot, config, permissions, repository, knowledge, db, logger);
   }
 
   public static async createInMemory(
@@ -84,16 +95,27 @@ export class RepoDocContext {
       logger: logger ?? new SilentLogger(),
     });
 
+    const repository = new RepositoryEngine({
+      projectRoot,
+      config,
+      logger: logger ?? new SilentLogger(),
+    });
+
     const knowledge = new KnowledgeRepository(db);
 
     return new RepoDocContext(
       projectRoot,
       config,
       permissions,
+      repository,
       knowledge,
       db,
       logger ?? new SilentLogger()
     );
+  }
+
+  public async discover(): Promise<ProjectStructure> {
+    return this.repository.discover();
   }
 
   public close(): void {

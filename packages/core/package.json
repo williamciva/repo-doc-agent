@@ -21,6 +21,7 @@
     "@repodoc/configuration": "workspace:*",
     "@repodoc/permissions": "workspace:*",
     "@repodoc/persistence": "workspace:*",
+    "@repodoc/repository": "workspace:*",
     "@repodoc/shared": "workspace:*",
     "zod": "^3.24.2"
   },
