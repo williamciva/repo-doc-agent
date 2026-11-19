@@ -1,0 +1,38 @@
+version: 1
+
+project:
+  name: repo-doc-agent
+  description: "Agnostic platform for repository analysis, software knowledge management, and documentation"
+
+documentation:
+  language: en
+  depth: detailed
+  destination:
+    type: local
+    path: ./docs/repodoc
+  update:
+    mode: manual
+    incremental: true
+
+knowledge:
+  approval:
+    mode: manual
+
+analysis:
+  include:
+    - packages/**
+    - apps/**
+  exclude:
+    - node_modules/**
+    - dist/**
+    - coverage/**
+    - .git/**
+    - .repodoc/**
+
+ai:
+  provider: default
+  model: default
+
+integrations:
+  mcp:
+    enabled: true
