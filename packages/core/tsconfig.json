@@ -10,7 +10,8 @@
     { "path": "../permissions" },
     { "path": "../persistence" },
     { "path": "../repository" },
-    { "path": "../analyzer" }
+    { "path": "../analyzer" },
+    { "path": "../knowledge" }
   ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]

@@ -17,7 +17,8 @@ describe('RepoDoc Core Context', () => {
     expect(context.config.project.name).toBe('repo-doc-agent');
     expect(context.config.documentation.language).toBe('en');
     expect(context.permissions).toBeDefined();
-    expect(context.knowledge).toBeDefined();
+    expect(context.knowledgeRepo).toBeDefined();
+    expect(context.knowledgeService).toBeDefined();
     expect(context.repository).toBeDefined();
     expect(context.analyzer).toBeDefined();
 
@@ -48,8 +49,8 @@ describe('RepoDoc Core Context', () => {
       relationships: [],
     };
 
-    await context.knowledge.save(item);
-    const retrieved = await context.knowledge.findById('core-item-1');
+    await context.knowledgeRepo.save(item);
+    const retrieved = await context.knowledgeRepo.findById('core-item-1');
     expect(retrieved?.title).toBe('Monorepo Core Foundation');
   });
 });

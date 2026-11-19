@@ -9,13 +9,16 @@ import {
   SqliteDatabaseConnection,
   MigrationManager,
   KnowledgeRepository,
+  QASessionRepository,
   DatabaseConnection,
 } from '@repodoc/persistence';
+import { KnowledgeService } from '@repodoc/knowledge';
 
 export interface RepoDocContextOptions {
   projectRoot: string;
   databasePath?: string; // default: .repodoc/repodoc.db or :memory:
   logger?: Logger;
+  approvalMode?: 'auto' | 'manual';
 }
 
 export class RepoDocContext {
@@ -24,7 +27,8 @@ export class RepoDocContext {
   public readonly permissions: PermissionsEngine;
   public readonly repository: RepositoryEngine;
   public readonly analyzer: AnalyzerEngine;
-  public readonly knowledge: KnowledgeRepository;
+  public readonly knowledgeRepo: KnowledgeRepository;
+  public readonly knowledgeService: KnowledgeService;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
 
@@ -34,7 +38,8 @@ export class RepoDocContext {
     permissions: PermissionsEngine,
     repository: RepositoryEngine,
     analyzer: AnalyzerEngine,
-    knowledge: KnowledgeRepository,
+    knowledgeRepo: KnowledgeRepository,
+    knowledgeService: KnowledgeService,
     db: DatabaseConnection,
     logger: Logger
   ) {
@@ -43,7 +48,8 @@ export class RepoDocContext {
     this.permissions = permissions;
     this.repository = repository;
     this.analyzer = analyzer;
-    this.knowledge = knowledge;
+    this.knowledgeRepo = knowledgeRepo;
+    this.knowledgeService = knowledgeService;
     this.db = db;
     this.logger = logger;
   }
@@ -51,6 +57,7 @@ export class RepoDocContext {
   public static async create(options: RepoDocContextOptions): Promise<RepoDocContext> {
     const projectRoot = path.resolve(options.projectRoot);
     const logger = options.logger ?? new ConsoleLogger('info');
+    const approvalMode = options.approvalMode ?? 'manual';
 
     // 1. Load project configuration
     const config = await loadProjectConfig(projectRoot);
@@ -83,7 +90,9 @@ export class RepoDocContext {
     const migrator = new MigrationManager(db);
     migrator.runMigrations();
 
-    const knowledge = new KnowledgeRepository(db);
+    const knowledgeRepo = new KnowledgeRepository(db);
+    const qaRepo = new QASessionRepository(db);
+    const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, { approvalMode });
 
     return new RepoDocContext(
       projectRoot,
@@ -91,7 +100,8 @@ export class RepoDocContext {
       permissions,
       repository,
       analyzer,
-      knowledge,
+      knowledgeRepo,
+      knowledgeService,
       db,
       logger
     );
@@ -99,7 +109,8 @@ export class RepoDocContext {
 
   public static async createInMemory(
     projectRoot = process.cwd(),
-    logger?: Logger
+    logger?: Logger,
+    approvalMode: 'auto' | 'manual' = 'manual'
   ): Promise<RepoDocContext> {
     const config = await loadProjectConfig(projectRoot);
     const db = new SqliteDatabaseConnection({ path: ':memory:' });
@@ -121,7 +132,9 @@ export class RepoDocContext {
       logger: logger ?? new SilentLogger(),
     });
 
-    const knowledge = new KnowledgeRepository(db);
+    const knowledgeRepo = new KnowledgeRepository(db);
+    const qaRepo = new QASessionRepository(db);
+    const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, { approvalMode });
 
     return new RepoDocContext(
       projectRoot,
@@ -129,7 +142,8 @@ export class RepoDocContext {
       permissions,
       repository,
       analyzer,
-      knowledge,
+      knowledgeRepo,
+      knowledgeService,
       db,
       logger ?? new SilentLogger()
     );
@@ -141,7 +155,9 @@ export class RepoDocContext {
 
   public async analyze(): Promise<AnalysisResult> {
     const structure = await this.discover();
-    return this.analyzer.analyzeFiles(structure.files);
+    const analysis = await this.analyzer.analyzeFiles(structure.files);
+    await this.knowledgeService.ingestFromAnalysis(analysis, structure);
+    return analysis;
   }
 
   public close(): void {
