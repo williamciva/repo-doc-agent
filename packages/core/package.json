@@ -18,6 +18,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@repodoc/analyzer": "workspace:*",
     "@repodoc/configuration": "workspace:*",
     "@repodoc/permissions": "workspace:*",
     "@repodoc/persistence": "workspace:*",

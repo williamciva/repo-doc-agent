@@ -9,7 +9,8 @@
     { "path": "../configuration" },
     { "path": "../permissions" },
     { "path": "../persistence" },
-    { "path": "../repository" }
+    { "path": "../repository" },
+    { "path": "../analyzer" }
   ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]

@@ -22,13 +22,23 @@ export class FileScanner {
   constructor(options: ScanOptions) {
     this.projectRoot = path.resolve(options.projectRoot);
     this.includePatterns = options.config?.include ?? ['**/*'];
-    this.excludePatterns = options.config?.exclude ?? [
+    const rawExcludes = options.config?.exclude ?? [
       'node_modules/**',
       'dist/**',
       'build/**',
       'coverage/**',
       '.git/**',
       '.repodoc/**',
+    ];
+    // Ensure fast-glob skips directories everywhere in monorepos
+    this.excludePatterns = [
+      ...rawExcludes,
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/.git/**',
+      '**/.repodoc/**',
     ];
     this.maxFileSize = options.maxFileSize ?? 10 * 1024 * 1024;
   }

@@ -4,6 +4,7 @@ import { Logger, SilentLogger, ConsoleLogger } from '@repodoc/shared';
 import { loadProjectConfig, ProjectConfig } from '@repodoc/configuration';
 import { PermissionsEngine } from '@repodoc/permissions';
 import { RepositoryEngine, ProjectStructure } from '@repodoc/repository';
+import { AnalyzerEngine, AnalysisResult } from '@repodoc/analyzer';
 import {
   SqliteDatabaseConnection,
   MigrationManager,
@@ -22,6 +23,7 @@ export class RepoDocContext {
   public readonly config: ProjectConfig;
   public readonly permissions: PermissionsEngine;
   public readonly repository: RepositoryEngine;
+  public readonly analyzer: AnalyzerEngine;
   public readonly knowledge: KnowledgeRepository;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
@@ -31,6 +33,7 @@ export class RepoDocContext {
     config: ProjectConfig,
     permissions: PermissionsEngine,
     repository: RepositoryEngine,
+    analyzer: AnalyzerEngine,
     knowledge: KnowledgeRepository,
     db: DatabaseConnection,
     logger: Logger
@@ -39,6 +42,7 @@ export class RepoDocContext {
     this.config = config;
     this.permissions = permissions;
     this.repository = repository;
+    this.analyzer = analyzer;
     this.knowledge = knowledge;
     this.db = db;
     this.logger = logger;
@@ -64,7 +68,10 @@ export class RepoDocContext {
       logger,
     });
 
-    // 4. Initialize SQLite Persistence & run migrations
+    // 4. Initialize Analyzer Engine
+    const analyzer = new AnalyzerEngine({ logger });
+
+    // 5. Initialize SQLite Persistence & run migrations
     let dbPath = options.databasePath;
     if (!dbPath) {
       const repodocDir = path.join(projectRoot, '.repodoc');
@@ -78,7 +85,16 @@ export class RepoDocContext {
 
     const knowledge = new KnowledgeRepository(db);
 
-    return new RepoDocContext(projectRoot, config, permissions, repository, knowledge, db, logger);
+    return new RepoDocContext(
+      projectRoot,
+      config,
+      permissions,
+      repository,
+      analyzer,
+      knowledge,
+      db,
+      logger
+    );
   }
 
   public static async createInMemory(
@@ -101,6 +117,10 @@ export class RepoDocContext {
       logger: logger ?? new SilentLogger(),
     });
 
+    const analyzer = new AnalyzerEngine({
+      logger: logger ?? new SilentLogger(),
+    });
+
     const knowledge = new KnowledgeRepository(db);
 
     return new RepoDocContext(
@@ -108,6 +128,7 @@ export class RepoDocContext {
       config,
       permissions,
       repository,
+      analyzer,
       knowledge,
       db,
       logger ?? new SilentLogger()
@@ -116,6 +137,11 @@ export class RepoDocContext {
 
   public async discover(): Promise<ProjectStructure> {
     return this.repository.discover();
+  }
+
+  public async analyze(): Promise<AnalysisResult> {
+    const structure = await this.discover();
+    return this.analyzer.analyzeFiles(structure.files);
   }
 
   public close(): void {

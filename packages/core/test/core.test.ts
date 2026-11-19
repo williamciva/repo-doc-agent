@@ -19,11 +19,17 @@ describe('RepoDoc Core Context', () => {
     expect(context.permissions).toBeDefined();
     expect(context.knowledge).toBeDefined();
     expect(context.repository).toBeDefined();
+    expect(context.analyzer).toBeDefined();
 
-    // Verify discovery through context
+    // Verify discovery and analysis through context
     const structure = await context.discover();
     expect(structure.isMonorepo).toBe(true);
     expect(structure.totalFiles).toBeGreaterThan(5);
+
+    const analysis = await context.analyze();
+    expect(analysis.parsedFiles.length).toBeGreaterThan(0);
+    expect(analysis.allSymbols.length).toBeGreaterThan(0);
+    expect(analysis.summary.totalSymbols).toBeGreaterThan(0);
 
     // Verify knowledge repository works inside context
     const item: KnowledgeItem = {

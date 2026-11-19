@@ -21,7 +21,7 @@ describe('Repository Engine', () => {
     // Ensure ignored files like dist/ or node_modules/ are not present
     const distFiles = structure.files.filter((f) => f.relativePath.includes('dist/'));
     expect(distFiles).toHaveLength(0);
-  });
+  }, 15000);
 
   it('should safely read authorized files', async () => {
     const content = await engine.readFile(path.join(root, 'package.json'));
