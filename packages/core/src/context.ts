@@ -13,6 +13,11 @@ import {
   DatabaseConnection,
 } from '@repodoc/persistence';
 import { KnowledgeService } from '@repodoc/knowledge';
+import {
+  DocumentationEngine,
+  DocumentationGenerateOptions,
+  DocumentationResult,
+} from '@repodoc/documentation';
 
 export interface RepoDocContextOptions {
   projectRoot: string;
@@ -29,6 +34,7 @@ export class RepoDocContext {
   public readonly analyzer: AnalyzerEngine;
   public readonly knowledgeRepo: KnowledgeRepository;
   public readonly knowledgeService: KnowledgeService;
+  public readonly documentation: DocumentationEngine;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
 
@@ -40,6 +46,7 @@ export class RepoDocContext {
     analyzer: AnalyzerEngine,
     knowledgeRepo: KnowledgeRepository,
     knowledgeService: KnowledgeService,
+    documentation: DocumentationEngine,
     db: DatabaseConnection,
     logger: Logger
   ) {
@@ -50,6 +57,7 @@ export class RepoDocContext {
     this.analyzer = analyzer;
     this.knowledgeRepo = knowledgeRepo;
     this.knowledgeService = knowledgeService;
+    this.documentation = documentation;
     this.db = db;
     this.logger = logger;
   }
@@ -93,6 +101,11 @@ export class RepoDocContext {
     const knowledgeRepo = new KnowledgeRepository(db);
     const qaRepo = new QASessionRepository(db);
     const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, { approvalMode });
+    const documentation = new DocumentationEngine({
+      projectRoot,
+      permissions,
+      logger,
+    });
 
     return new RepoDocContext(
       projectRoot,
@@ -102,6 +115,7 @@ export class RepoDocContext {
       analyzer,
       knowledgeRepo,
       knowledgeService,
+      documentation,
       db,
       logger
     );
@@ -132,9 +146,15 @@ export class RepoDocContext {
       logger: logger ?? new SilentLogger(),
     });
 
+    const resolvedLogger = logger ?? new SilentLogger();
     const knowledgeRepo = new KnowledgeRepository(db);
     const qaRepo = new QASessionRepository(db);
     const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, { approvalMode });
+    const documentation = new DocumentationEngine({
+      projectRoot,
+      permissions,
+      logger: resolvedLogger,
+    });
 
     return new RepoDocContext(
       projectRoot,
@@ -144,8 +164,9 @@ export class RepoDocContext {
       analyzer,
       knowledgeRepo,
       knowledgeService,
+      documentation,
       db,
-      logger ?? new SilentLogger()
+      resolvedLogger
     );
   }
 
@@ -158,6 +179,46 @@ export class RepoDocContext {
     const analysis = await this.analyzer.analyzeFiles(structure.files);
     await this.knowledgeService.ingestFromAnalysis(analysis, structure);
     return analysis;
+  }
+
+  public async previewDocumentation(
+    overrides: Partial<DocumentationGenerateOptions> = {}
+  ): Promise<DocumentationResult> {
+    const structure = await this.discover();
+    const analysis = await this.analyzer.analyzeFiles(structure.files);
+    const knowledgeItems = await this.knowledgeService.query({});
+
+    return this.documentation.preview(
+      { structure, analysis, knowledgeItems },
+      {
+        projectName: this.config.project.name,
+        projectDescription: this.config.project.description,
+        language: this.config.documentation.language,
+        depth: this.config.documentation.depth,
+        outputDir: this.config.documentation.destination.path,
+        ...overrides,
+      }
+    );
+  }
+
+  public async generateDocumentation(
+    overrides: Partial<DocumentationGenerateOptions> = {}
+  ): Promise<DocumentationResult> {
+    const structure = await this.discover();
+    const analysis = await this.analyzer.analyzeFiles(structure.files);
+    const knowledgeItems = await this.knowledgeService.query({});
+
+    return this.documentation.generate(
+      { structure, analysis, knowledgeItems },
+      {
+        projectName: this.config.project.name,
+        projectDescription: this.config.project.description,
+        language: this.config.documentation.language,
+        depth: this.config.documentation.depth,
+        outputDir: this.config.documentation.destination.path,
+        ...overrides,
+      }
+    );
   }
 
   public close(): void {

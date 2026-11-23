@@ -20,6 +20,7 @@
   "dependencies": {
     "@repodoc/analyzer": "workspace:*",
     "@repodoc/configuration": "workspace:*",
+    "@repodoc/documentation": "workspace:*",
     "@repodoc/knowledge": "workspace:*",
     "@repodoc/permissions": "workspace:*",
     "@repodoc/persistence": "workspace:*",

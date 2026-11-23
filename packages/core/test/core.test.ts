@@ -19,6 +19,7 @@ describe('RepoDoc Core Context', () => {
     expect(context.permissions).toBeDefined();
     expect(context.knowledgeRepo).toBeDefined();
     expect(context.knowledgeService).toBeDefined();
+    expect(context.documentation).toBeDefined();
     expect(context.repository).toBeDefined();
     expect(context.analyzer).toBeDefined();
 
@@ -52,5 +53,11 @@ describe('RepoDoc Core Context', () => {
     await context.knowledgeRepo.save(item);
     const retrieved = await context.knowledgeRepo.findById('core-item-1');
     expect(retrieved?.title).toBe('Monorepo Core Foundation');
+
+    // Verify documentation preview works through context
+    const docPreview = await context.previewDocumentation({ depth: 'overview' });
+    expect(docPreview.previewOnly).toBe(true);
+    expect(docPreview.documents.length).toBeGreaterThanOrEqual(2);
+    expect(docPreview.language).toBe('en');
   });
 });

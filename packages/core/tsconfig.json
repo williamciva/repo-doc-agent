@@ -11,7 +11,8 @@
     { "path": "../persistence" },
     { "path": "../repository" },
     { "path": "../analyzer" },
-    { "path": "../knowledge" }
+    { "path": "../knowledge" },
+    { "path": "../documentation" }
   ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]
