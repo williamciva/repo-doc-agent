@@ -20,7 +20,9 @@
   "dependencies": {
     "@repodoc/analyzer": "workspace:*",
     "@repodoc/configuration": "workspace:*",
+    "@repodoc/dependency-graph": "workspace:*",
     "@repodoc/documentation": "workspace:*",
+    "@repodoc/git-intelligence": "workspace:*",
     "@repodoc/knowledge": "workspace:*",
     "@repodoc/permissions": "workspace:*",
     "@repodoc/persistence": "workspace:*",

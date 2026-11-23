@@ -61,9 +61,15 @@ importers:
       '@repodoc/configuration':
         specifier: workspace:*
         version: link:../configuration
+      '@repodoc/dependency-graph':
+        specifier: workspace:*
+        version: link:../dependency-graph
       '@repodoc/documentation':
         specifier: workspace:*
         version: link:../documentation
+      '@repodoc/git-intelligence':
+        specifier: workspace:*
+        version: link:../git-intelligence
       '@repodoc/knowledge':
         specifier: workspace:*
         version: link:../knowledge
@@ -90,6 +96,31 @@ importers:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@22.20.5)(yaml@2.9.1)
 
+  packages/dependency-graph:
+    dependencies:
+      '@repodoc/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
+      '@repodoc/documentation':
+        specifier: workspace:*
+        version: link:../documentation
+      '@repodoc/persistence':
+        specifier: workspace:*
+        version: link:../persistence
+      '@repodoc/repository':
+        specifier: workspace:*
+        version: link:../repository
+      '@repodoc/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7(@types/node@22.20.5)(yaml@2.9.1)
+
   packages/documentation:
     dependencies:
       '@repodoc/analyzer':
@@ -104,6 +135,25 @@ importers:
       '@repodoc/repository':
         specifier: workspace:*
         version: link:../repository
+      '@repodoc/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7(@types/node@22.20.5)(yaml@2.9.1)
+
+  packages/git-intelligence:
+    dependencies:
+      '@repodoc/dependency-graph':
+        specifier: workspace:*
+        version: link:../dependency-graph
+      '@repodoc/documentation':
+        specifier: workspace:*
+        version: link:../documentation
       '@repodoc/shared':
         specifier: workspace:*
         version: link:../shared

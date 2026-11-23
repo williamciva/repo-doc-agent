@@ -10,6 +10,7 @@ import {
   MigrationManager,
   KnowledgeRepository,
   QASessionRepository,
+  GraphRepository,
   DatabaseConnection,
 } from '@repodoc/persistence';
 import { KnowledgeService } from '@repodoc/knowledge';
@@ -18,6 +19,8 @@ import {
   DocumentationGenerateOptions,
   DocumentationResult,
 } from '@repodoc/documentation';
+import { DependencyGraph, GraphBuilder } from '@repodoc/dependency-graph';
+import { GitIntelligenceEngine, OutdatedDocReport } from '@repodoc/git-intelligence';
 
 export interface RepoDocContextOptions {
   projectRoot: string;
@@ -33,8 +36,10 @@ export class RepoDocContext {
   public readonly repository: RepositoryEngine;
   public readonly analyzer: AnalyzerEngine;
   public readonly knowledgeRepo: KnowledgeRepository;
+  public readonly graphRepo: GraphRepository;
   public readonly knowledgeService: KnowledgeService;
   public readonly documentation: DocumentationEngine;
+  public readonly gitIntelligence: GitIntelligenceEngine;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
 
@@ -45,8 +50,10 @@ export class RepoDocContext {
     repository: RepositoryEngine,
     analyzer: AnalyzerEngine,
     knowledgeRepo: KnowledgeRepository,
+    graphRepo: GraphRepository,
     knowledgeService: KnowledgeService,
     documentation: DocumentationEngine,
+    gitIntelligence: GitIntelligenceEngine,
     db: DatabaseConnection,
     logger: Logger
   ) {
@@ -56,8 +63,10 @@ export class RepoDocContext {
     this.repository = repository;
     this.analyzer = analyzer;
     this.knowledgeRepo = knowledgeRepo;
+    this.graphRepo = graphRepo;
     this.knowledgeService = knowledgeService;
     this.documentation = documentation;
+    this.gitIntelligence = gitIntelligence;
     this.db = db;
     this.logger = logger;
   }
@@ -100,6 +109,7 @@ export class RepoDocContext {
     migrator.runMigrations();
 
     const knowledgeRepo = new KnowledgeRepository(db);
+    const graphRepo = new GraphRepository(db);
     const qaRepo = new QASessionRepository(db);
     const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, {
       approvalMode,
@@ -107,6 +117,10 @@ export class RepoDocContext {
     const documentation = new DocumentationEngine({
       projectRoot,
       permissions,
+      logger,
+    });
+    const gitIntelligence = new GitIntelligenceEngine({
+      projectRoot,
       logger,
     });
 
@@ -117,8 +131,10 @@ export class RepoDocContext {
       repository,
       analyzer,
       knowledgeRepo,
+      graphRepo,
       knowledgeService,
       documentation,
+      gitIntelligence,
       db,
       logger
     );
@@ -153,6 +169,7 @@ export class RepoDocContext {
 
     const resolvedLogger = logger ?? new SilentLogger();
     const knowledgeRepo = new KnowledgeRepository(db);
+    const graphRepo = new GraphRepository(db);
     const qaRepo = new QASessionRepository(db);
     const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, {
       approvalMode: resolvedApprovalMode,
@@ -160,6 +177,10 @@ export class RepoDocContext {
     const documentation = new DocumentationEngine({
       projectRoot,
       permissions,
+      logger: resolvedLogger,
+    });
+    const gitIntelligence = new GitIntelligenceEngine({
+      projectRoot,
       logger: resolvedLogger,
     });
 
@@ -170,8 +191,10 @@ export class RepoDocContext {
       repository,
       analyzer,
       knowledgeRepo,
+      graphRepo,
       knowledgeService,
       documentation,
+      gitIntelligence,
       db,
       resolvedLogger
     );
@@ -226,6 +249,44 @@ export class RepoDocContext {
         ...overrides,
       }
     );
+  }
+
+  public async buildDependencyGraph(persist = true): Promise<DependencyGraph> {
+    const structure = await this.discover();
+    const analysis = await this.analyzer.analyzeFiles(structure.files);
+    const knowledgeItems = await this.knowledgeService.query({});
+    const docsPreview = this.documentation.preview(
+      { structure, analysis, knowledgeItems },
+      {
+        projectName: this.config.project.name,
+        projectDescription: this.config.project.description,
+        language: this.config.documentation.language,
+        depth: this.config.documentation.depth,
+      }
+    );
+
+    const graph = new GraphBuilder().build({
+      structure,
+      analysis,
+      knowledgeItems,
+      documents: docsPreview.documents,
+    });
+
+    if (persist) {
+      const persisted = graph.toPersisted();
+      await this.graphRepo.saveGraph(persisted.nodes, persisted.edges);
+    }
+
+    return graph;
+  }
+
+  public async detectOutdatedDocumentation(baseRef?: string): Promise<OutdatedDocReport> {
+    const graph = await this.buildDependencyGraph(false);
+    if (baseRef) {
+      return this.gitIntelligence.detectOutdatedSinceRef(graph, baseRef);
+    }
+    const changes = await this.gitIntelligence.getWorkingTreeChanges();
+    return this.gitIntelligence.detectOutdatedFromChanges(graph, changes);
   }
 
   public close(): void {

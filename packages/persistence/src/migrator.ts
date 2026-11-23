@@ -1,6 +1,7 @@
 import { DatabaseConnection } from './interfaces.js';
 import { migration001 } from './migrations/001_initial_schema.js';
 import { migration002 } from './migrations/002_qa_sessions.js';
+import { migration003 } from './migrations/003_dependency_graph.js';
 import { PersistenceError } from '@repodoc/shared';
 
 export interface Migration {
@@ -10,7 +11,7 @@ export interface Migration {
 }
 
 export class MigrationManager {
-  private readonly migrations: Migration[] = [migration001, migration002];
+  private readonly migrations: Migration[] = [migration001, migration002, migration003];
 
   constructor(private readonly db: DatabaseConnection) {}
 

@@ -12,7 +12,9 @@
     { "path": "../repository" },
     { "path": "../analyzer" },
     { "path": "../knowledge" },
-    { "path": "../documentation" }
+    { "path": "../documentation" },
+    { "path": "../dependency-graph" },
+    { "path": "../git-intelligence" }
   ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]

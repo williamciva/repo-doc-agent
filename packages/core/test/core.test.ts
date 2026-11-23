@@ -18,8 +18,10 @@ describe('RepoDoc Core Context', () => {
     expect(context.config.documentation.language).toBe('en');
     expect(context.permissions).toBeDefined();
     expect(context.knowledgeRepo).toBeDefined();
+    expect(context.graphRepo).toBeDefined();
     expect(context.knowledgeService).toBeDefined();
     expect(context.documentation).toBeDefined();
+    expect(context.gitIntelligence).toBeDefined();
     expect(context.repository).toBeDefined();
     expect(context.analyzer).toBeDefined();
 
