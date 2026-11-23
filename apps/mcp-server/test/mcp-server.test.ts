@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { RepoDocContext } from '@repodoc/core';
 import { McpServerHandler } from '../src/server.js';
@@ -114,4 +116,40 @@ describe('McpServerHandler', () => {
     });
     expect((batchApprove?.result as { isError: boolean }).isError).toBe(false);
   }, 15000);
+
+  it('should auto-detect project root from MCP initialize rootUri and support per-call projectRoot', async () => {
+    const repoRoot = process.cwd();
+    const dynamicHandler = new McpServerHandler({
+      defaultProjectRoot: path.dirname(repoRoot),
+      contextFactory: (root) => RepoDocContext.createInMemory(root),
+    });
+
+    try {
+      await dynamicHandler.handleRequest({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          rootUri: pathToFileURL(repoRoot).toString(),
+        },
+      });
+
+      expect(dynamicHandler.getDefaultProjectRoot()).toBe(repoRoot);
+
+      const cfgResp = await dynamicHandler.handleRequest({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: {
+          name: 'get_project_configuration',
+          arguments: { projectRoot: repoRoot },
+        },
+      });
+      const cfgResult = cfgResp?.result as { isError: boolean; content: Array<{ text: string }> };
+      expect(cfgResult.isError).toBe(false);
+      expect(cfgResult.content[0]?.text).toContain('repo-doc-agent');
+    } finally {
+      dynamicHandler.closeAll();
+    }
+  });
 });

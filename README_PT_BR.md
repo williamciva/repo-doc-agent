@@ -180,20 +180,19 @@ O servidor MCP expõe **14 tools**, **5 resources** e **5 prompts** via JSON-RPC
 
 ```bash
 repodoc mcp start
-# ou diretamente:
-repodoc-mcp /caminho/para/o/projeto-alvo
+# ou diretamente (detecta o projeto automaticamente via MCP initialize / cwd):
+repodoc-mcp
 ```
 
 ### Configuração em Clientes MCP (Antigravity, Claude Code, Codex, OpenCode)
 
-Se instalado globalmente via `pnpm run link:global`, adicione a configuração abaixo ao arquivo MCP do seu cliente:
+Adicione a configuração global abaixo ao arquivo MCP do seu cliente (após rodar `pnpm run link:global`). O servidor detecta automaticamente o repositório aberto no contexto da IA (`rootUri` / `workspaceFolders` / `cwd`) e também aceita `projectRoot` opcional por chamada de tool:
 
 ```json
 {
   "mcpServers": {
     "repodoc": {
-      "command": "repodoc-mcp",
-      "args": ["/caminho/absoluto/para/o/projeto-alvo"]
+      "command": "repodoc-mcp"
     }
   }
 }
@@ -206,10 +205,7 @@ Ou sem instalação global, apontando diretamente para o bundle gerado:
   "mcpServers": {
     "repodoc": {
       "command": "node",
-      "args": [
-        "/caminho/absoluto/para/repo-doc-agent/dist/repodoc-mcp.mjs",
-        "/caminho/absoluto/para/o/projeto-alvo"
-      ]
+      "args": ["/caminho/absoluto/para/repo-doc-agent/dist/repodoc-mcp.mjs"]
     }
   }
 }

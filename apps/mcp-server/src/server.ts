@@ -1,6 +1,8 @@
+import * as path from 'node:path';
 import * as readline from 'node:readline';
+import { fileURLToPath } from 'node:url';
 import { RepoDocContext } from '@repodoc/core';
-import { ConsoleLogger } from '@repodoc/shared';
+import { ConsoleLogger, Logger } from '@repodoc/shared';
 import { createMcpTools, McpToolDefinition } from './tools.js';
 import { createMcpResources, McpResourceDefinition } from './resources.js';
 import { createMcpPrompts, McpPromptDefinition } from './prompts.js';
@@ -23,15 +25,93 @@ export interface JsonRpcResponse {
   };
 }
 
+export interface McpServerOptions {
+  defaultProjectRoot?: string;
+  logger?: Logger;
+  contextFactory?: (projectRoot: string) => Promise<RepoDocContext>;
+}
+
+function uriToPath(uriOrPath: string): string {
+  if (uriOrPath.startsWith('file://')) {
+    return fileURLToPath(uriOrPath);
+  }
+  return path.resolve(uriOrPath);
+}
+
+function extractRootFromInitialize(params?: Record<string, unknown>): string | undefined {
+  if (!params) return undefined;
+
+  const workspaceFolders = params['workspaceFolders'];
+  if (Array.isArray(workspaceFolders) && workspaceFolders.length > 0) {
+    const first = workspaceFolders[0] as Record<string, unknown> | undefined;
+    const uri = typeof first?.['uri'] === 'string' ? first['uri'] : undefined;
+    if (uri) return uriToPath(uri);
+  }
+
+  const rootUri = params['rootUri'];
+  if (typeof rootUri === 'string' && rootUri.length > 0) {
+    return uriToPath(rootUri);
+  }
+
+  const rootPath = params['rootPath'];
+  if (typeof rootPath === 'string' && rootPath.length > 0) {
+    return path.resolve(rootPath);
+  }
+
+  return undefined;
+}
+
 export class McpServerHandler {
   private readonly tools: Map<string, McpToolDefinition>;
   private readonly resources: Map<string, McpResourceDefinition>;
   private readonly prompts: Map<string, McpPromptDefinition>;
+  private readonly contexts = new Map<string, RepoDocContext>();
+  private readonly logger: Logger;
+  private readonly contextFactory: (projectRoot: string) => Promise<RepoDocContext>;
+  private defaultProjectRoot: string;
 
-  constructor(private readonly context: RepoDocContext) {
+  constructor(contextOrOptions?: RepoDocContext | McpServerOptions) {
     this.tools = new Map(createMcpTools().map((t) => [t.name, t]));
     this.resources = new Map(createMcpResources().map((r) => [r.uri, r]));
     this.prompts = new Map(createMcpPrompts().map((p) => [p.name, p]));
+
+    if (contextOrOptions && 'projectRoot' in contextOrOptions && 'config' in contextOrOptions) {
+      const fixedCtx = contextOrOptions;
+      this.defaultProjectRoot = fixedCtx.projectRoot;
+      this.logger = fixedCtx.logger;
+      this.contexts.set(path.resolve(fixedCtx.projectRoot), fixedCtx);
+      this.contextFactory = async () => fixedCtx;
+    } else {
+      const opts = contextOrOptions ?? {};
+      this.defaultProjectRoot = path.resolve(opts.defaultProjectRoot ?? process.cwd());
+      this.logger = opts.logger ?? new ConsoleLogger('warn');
+      this.contextFactory =
+        opts.contextFactory ??
+        ((root) => RepoDocContext.create({ projectRoot: root, logger: this.logger }));
+    }
+  }
+
+  public getDefaultProjectRoot(): string {
+    return this.defaultProjectRoot;
+  }
+
+  public async getContext(projectRoot?: string): Promise<RepoDocContext> {
+    const resolved = path.resolve(projectRoot ?? this.defaultProjectRoot);
+    const existing = this.contexts.get(resolved);
+    if (existing) {
+      return existing;
+    }
+
+    const created = await this.contextFactory(resolved);
+    this.contexts.set(resolved, created);
+    return created;
+  }
+
+  public closeAll(): void {
+    for (const ctx of this.contexts.values()) {
+      ctx.close();
+    }
+    this.contexts.clear();
   }
 
   public async handleRequest(req: JsonRpcRequest): Promise<JsonRpcResponse | null> {
@@ -44,7 +124,11 @@ export class McpServerHandler {
 
     try {
       switch (req.method) {
-        case 'initialize':
+        case 'initialize': {
+          const detectedRoot = extractRootFromInitialize(req.params);
+          if (detectedRoot) {
+            this.defaultProjectRoot = detectedRoot;
+          }
           return {
             jsonrpc: '2.0',
             id,
@@ -61,6 +145,7 @@ export class McpServerHandler {
               },
             },
           };
+        }
 
         case 'ping':
           return { jsonrpc: '2.0', id, result: {} };
@@ -81,7 +166,7 @@ export class McpServerHandler {
         case 'tools/call': {
           const params = req.params ?? {};
           const name = String(params['name'] ?? '');
-          const args = (params['arguments'] as Record<string, unknown> | undefined) ?? {};
+          const rawArgs = { ...((params['arguments'] as Record<string, unknown> | undefined) ?? {}) };
           const tool = this.tools.get(name);
           if (!tool) {
             return {
@@ -91,8 +176,13 @@ export class McpServerHandler {
             };
           }
 
+          const explicitRoot =
+            typeof rawArgs['projectRoot'] === 'string' ? rawArgs['projectRoot'] : undefined;
+          delete rawArgs['projectRoot'];
+
           try {
-            const output = await tool.execute(this.context, args);
+            const ctx = await this.getContext(explicitRoot);
+            const output = await tool.execute(ctx, rawArgs);
             return {
               jsonrpc: '2.0',
               id,
@@ -148,7 +238,8 @@ export class McpServerHandler {
             };
           }
 
-          const text = await resource.read(this.context);
+          const ctx = await this.getContext();
+          const text = await resource.read(ctx);
           return {
             jsonrpc: '2.0',
             id,
@@ -213,10 +304,12 @@ export class McpServerHandler {
   }
 }
 
-export async function startStdioMcpServer(projectRoot = process.cwd()): Promise<void> {
+export async function startStdioMcpServer(projectRoot?: string): Promise<void> {
   const logger = new ConsoleLogger('warn');
-  const context = await RepoDocContext.create({ projectRoot, logger });
-  const handler = new McpServerHandler(context);
+  const handler = new McpServerHandler({
+    defaultProjectRoot: projectRoot ?? process.cwd(),
+    logger,
+  });
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -250,7 +343,7 @@ export async function startStdioMcpServer(projectRoot = process.cwd()): Promise<
 
   await new Promise<void>((resolve) => {
     rl.on('close', () => {
-      context.close();
+      handler.closeAll();
       resolve();
     });
   });

@@ -180,20 +180,19 @@ The MCP server exposes **14 tools**, **5 resources**, and **5 prompts** over JSO
 
 ```bash
 repodoc mcp start
-# or directly:
-repodoc-mcp /path/to/target-repo
+# or directly (auto-detects workspace from MCP initialize / cwd):
+repodoc-mcp
 ```
 
 ### Client Configuration (Antigravity, Claude Code, Codex, OpenCode)
 
-Add the following entry to your MCP client configuration file (if installed globally via `pnpm run link:global`):
+Add the following global entry to your MCP client configuration file (after `pnpm run link:global`). It automatically detects the repository from the client's open workspace (`rootUri` / `workspaceFolders` / `cwd`), and also accepts an optional `projectRoot` argument per tool call:
 
 ```json
 {
   "mcpServers": {
     "repodoc": {
-      "command": "repodoc-mcp",
-      "args": ["/absolute/path/to/target-repo"]
+      "command": "repodoc-mcp"
     }
   }
 }
@@ -206,10 +205,7 @@ Or without global installation, pointing directly to the bundled entrypoint:
   "mcpServers": {
     "repodoc": {
       "command": "node",
-      "args": [
-        "/absolute/path/to/repo-doc-agent/dist/repodoc-mcp.mjs",
-        "/absolute/path/to/target-repo"
-      ]
+      "args": ["/absolute/path/to/repo-doc-agent/dist/repodoc-mcp.mjs"]
     }
   }
 }
