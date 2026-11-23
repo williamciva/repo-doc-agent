@@ -124,7 +124,11 @@ export class TechnicalDocBuilder {
       {
         id: 'internal-dependencies',
         title: labels.internalDependencies,
-        content: this.mermaid.generateDependencyDiagram(analysis.moduleGraph),
+        content: this.mermaid.generateDependencyDiagram(
+          analysis.moduleGraph,
+          40,
+          structure.rootPath
+        ),
         sourceItemIds: moduleItems.map((i) => i.id),
         fileReferences: structure.packages.map((p) => `${p.relativePath}/package.json`),
       },

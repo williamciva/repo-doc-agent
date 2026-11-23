@@ -52,21 +52,25 @@ export class MermaidGenerator {
 
   /**
    * Generates a Mermaid dependency graph for module/file dependencies.
+   * Normalizes paths relative to rootPath when provided so machine-local paths are never exposed.
    */
   public generateDependencyDiagram(
     moduleDependencies: Record<string, string[]>,
-    maxEdges = 40
+    maxEdges = 40,
+    rootPath?: string
   ): string {
     const lines: string[] = ['```mermaid', 'graph LR'];
     const declaredNodes = new Set<string>();
     let edgeCount = 0;
 
-    for (const [source, targets] of Object.entries(moduleDependencies)) {
+    for (const [rawSource, targets] of Object.entries(moduleDependencies)) {
       if (edgeCount >= maxEdges) break;
+      const source = this.toRelativeLabel(rawSource, rootPath);
       const sourceId = this.sanitizeId(source);
 
-      for (const target of targets) {
+      for (const rawTarget of targets) {
         if (edgeCount >= maxEdges) break;
+        const target = this.toRelativeLabel(rawTarget, rootPath);
         if (source === target) continue;
 
         const targetId = this.sanitizeId(target);
@@ -90,6 +94,17 @@ export class MermaidGenerator {
 
     lines.push('```');
     return lines.join('\n');
+  }
+
+  private toRelativeLabel(rawPath: string, rootPath?: string): string {
+    const normPath = rawPath.replace(/\\/g, '/');
+    if (!rootPath) return normPath;
+
+    const normRoot = rootPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    if (normPath.toLowerCase().startsWith(`${normRoot.toLowerCase()}/`)) {
+      return normPath.slice(normRoot.length + 1);
+    }
+    return normPath;
   }
 
   private sanitizeId(raw: string): string {

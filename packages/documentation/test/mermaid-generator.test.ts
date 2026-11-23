@@ -62,4 +62,18 @@ describe('MermaidGenerator', () => {
     expect(diagram).toContain('graph LR');
     expect(diagram).toContain('No internal module dependencies detected');
   });
+
+  it('should strip machine-specific rootPath from dependency graph labels', () => {
+    const diagram = generator.generateDependencyDiagram(
+      {
+        'C:\\Users\\Dev\\repo\\packages\\core\\src\\index.ts': ['@repodoc/shared'],
+      },
+      40,
+      'C:\\Users\\Dev\\repo'
+    );
+
+    expect(diagram).toContain('packages/core/src/index.ts');
+    expect(diagram).not.toContain('C:\\Users\\Dev');
+    expect(diagram).not.toContain('C:/Users/Dev');
+  });
 });
