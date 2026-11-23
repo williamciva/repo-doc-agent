@@ -128,6 +128,97 @@ pnpm run typecheck
 
 ---
 
+## Step-by-Step: Using RepoDocAgent in a New Project
+
+Once `repodoc` is linked globally (`pnpm run link:global`), follow this workflow inside **any existing or new repository**:
+
+### 1. Navigate to Your Project
+
+```bash
+cd /path/to/your-project
+```
+
+### 2. (Optional) Create `.repodoc/config.yaml`
+
+If `.repodoc/config.yaml` does not exist, RepoDocAgent automatically falls back to safe defaults (`en`, `detailed`, `./docs/repodoc`, `manual` approval). To customize language, depth, or approval mode, create `.repodoc/config.yaml`:
+
+```yaml
+version: 1
+
+project:
+  name: my-new-project
+  description: "Short description of the project"
+
+documentation:
+  language: en        # or pt-BR, es, fr, etc.
+  depth: detailed     # overview | standard | detailed | comprehensive
+  destination:
+    type: local
+    path: ./docs/repodoc
+
+knowledge:
+  approval:
+    mode: manual      # manual | automatic
+```
+
+> **Tip for `.gitignore`:** Keep `.repodoc/config.yaml` versioned and ignore the local SQLite database:
+> ```gitignore
+> .repodoc/*.db
+> .repodoc/*.db-*
+> ```
+
+### 3. Run Initial Analysis
+
+Discover files, parse AST/symbols, extract knowledge items into `.repodoc/repodoc.db`, and build the FTS5 search index:
+
+```bash
+repodoc analyze
+```
+
+### 4. Review and Approve Knowledge
+
+When `knowledge.approval.mode` is `manual` (default), inferred items start as `pending` and are excluded from official docs until approved:
+
+```bash
+# Inspect pending items
+repodoc knowledge pending
+
+# Approve a single item by ID, or approve all discovered items in batch
+repodoc knowledge approve <item-id>
+repodoc knowledge approve --all
+```
+
+### 5. Preview and Generate Documentation
+
+```bash
+# 1. Inspect what will be generated (no files written)
+repodoc docs preview
+
+# 2. Write Markdown + Mermaid documentation to ./docs/repodoc
+repodoc docs generate --yes
+```
+
+### 6. Ongoing Maintenance (Day-to-Day Flow)
+
+As your codebase evolves:
+
+```bash
+# Check modified files and whether docs became outdated
+repodoc git changes
+repodoc docs status
+
+# Query indexed code, symbols, and knowledge
+repodoc search "AuthService"
+repodoc ask "How does the payment flow work?"
+
+# Re-analyze and update documentation when needed
+repodoc analyze
+repodoc knowledge approve --all
+repodoc docs generate --yes
+```
+
+---
+
 ## CLI Usage (`repodoc`)
 
 The CLI works **100% offline** for structural analysis, FTS5 search, dependency graphs, and deterministic documentation generation. Every command supports `--json` for automation and `--project <path>` to target another repository.

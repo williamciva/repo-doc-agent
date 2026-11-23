@@ -128,6 +128,97 @@ pnpm run typecheck
 
 ---
 
+## Passo a Passo: Usando o RepoDocAgent em um Novo Projeto
+
+Depois de linkar o `repodoc` globalmente (`pnpm run link:global`), siga este fluxo dentro de **qualquer repositório novo ou existente**:
+
+### 1. Entre na Pasta do Projeto
+
+```bash
+cd /caminho/para/seu-projeto
+```
+
+### 2. (Opcional) Crie o `.repodoc/config.yaml`
+
+Se o `.repodoc/config.yaml` não existir, o RepoDocAgent usa padrões seguros automaticamente (`en`, `detailed`, `./docs/repodoc`, aprovação `manual`). Para personalizar idioma, profundidade ou modo de aprovação, crie `.repodoc/config.yaml`:
+
+```yaml
+version: 1
+
+project:
+  name: meu-novo-projeto
+  description: "Descrição breve do projeto"
+
+documentation:
+  language: pt-BR     # ou en, es, fr, etc.
+  depth: detailed     # overview | standard | detailed | comprehensive
+  destination:
+    type: local
+    path: ./docs/repodoc
+
+knowledge:
+  approval:
+    mode: manual      # manual | automatic
+```
+
+> **Dica para o `.gitignore`:** mantenha `.repodoc/config.yaml` versionado e ignore o banco SQLite local:
+> ```gitignore
+> .repodoc/*.db
+> .repodoc/*.db-*
+> ```
+
+### 3. Execute a Análise Inicial
+
+Descubra os arquivos, extraia símbolos/AST, registre os itens de conhecimento em `.repodoc/repodoc.db` e popule o índice FTS5:
+
+```bash
+repodoc analyze
+```
+
+### 4. Revise e Aprove o Conhecimento
+
+No modo `manual` (padrão), os itens inferidos ficam como `pending` e só entram na documentação oficial após aprovação:
+
+```bash
+# Listar itens pendentes
+repodoc knowledge pending
+
+# Aprovar um item específico ou aprovar todos em lote
+repodoc knowledge approve <item-id>
+repodoc knowledge approve --all
+```
+
+### 5. Visualize o Preview e Gere a Documentação
+
+```bash
+# 1. Conferir o que será gerado (não grava arquivos)
+repodoc docs preview
+
+# 2. Gravar a documentação Markdown + Mermaid em ./docs/repodoc
+repodoc docs generate --yes
+```
+
+### 6. Manutenção Contínua (Fluxo no Dia a Dia)
+
+Conforme o código evolui:
+
+```bash
+# Verificar arquivos alterados e se há documentação desatualizada
+repodoc git changes
+repodoc docs status
+
+# Consultar código, símbolos e conhecimento indexado
+repodoc search "AuthService"
+repodoc ask "Como funciona o fluxo de pagamento?"
+
+# Reanalisar e atualizar a documentação quando necessário
+repodoc analyze
+repodoc knowledge approve --all
+repodoc docs generate --yes
+```
+
+---
+
 ## Uso da CLI (`repodoc`)
 
 A CLI funciona **100% offline** para análise estrutural, busca FTS5, grafo de dependências e geração determinística de documentação. Todos os comandos aceitam `--json` para automação e `--project <path>` para apontar para outro repositório.
