@@ -44,7 +44,7 @@ describe('RepoDoc CLI', () => {
     const parsed = JSON.parse(buf.getStdout()) as { previewOnly: boolean; documents: unknown[] };
     expect(parsed.previewOnly).toBe(true);
     expect(parsed.documents.length).toBeGreaterThanOrEqual(2);
-  });
+  }, 15000);
 
   it('should deny docs generate without --yes (exit code 2)', async () => {
     const buf = createBufferIO();

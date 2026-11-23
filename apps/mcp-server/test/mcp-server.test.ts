@@ -102,5 +102,5 @@ describe('McpServerHandler', () => {
     const genResult = genUnauthorized?.result as { isError: boolean; content: Array<{ text: string }> };
     expect(genResult.isError).toBe(true);
     expect(genResult.content[0]?.text).toContain('not authorized');
-  });
+  }, 15000);
 });

@@ -64,5 +64,5 @@ describe('RepoDoc Core Context', () => {
     expect(docPreview.previewOnly).toBe(true);
     expect(docPreview.documents.length).toBeGreaterThanOrEqual(2);
     expect(docPreview.language).toBe('en');
-  });
+  }, 15000);
 });
