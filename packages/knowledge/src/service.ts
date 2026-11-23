@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { KnowledgeItem } from '@repodoc/shared';
+import { KnowledgeCategory, KnowledgeItem } from '@repodoc/shared';
 import { KnowledgeRepository, QASessionRepository } from '@repodoc/persistence';
 import type { QASession } from '@repodoc/persistence';
 import { AnalysisResult } from '@repodoc/analyzer';
@@ -101,6 +101,28 @@ export class KnowledgeService {
     await this.knowledgeRepo.updateApprovalStatus(itemId, 'approved');
 
     return { itemId, previousStatus, newStatus: 'approved' };
+  }
+
+  /**
+   * Approve all pending knowledge items, optionally filtered by category.
+   */
+  public async approveAll(options: { category?: KnowledgeCategory } = {}): Promise<ApprovalResult[]> {
+    const pending = await this.getPending();
+    const targets = options.category
+      ? pending.filter((item) => item.category === options.category)
+      : pending;
+
+    const results: ApprovalResult[] = [];
+    for (const item of targets) {
+      await this.knowledgeRepo.updateApprovalStatus(item.id, 'approved');
+      results.push({
+        itemId: item.id,
+        previousStatus: item.approvalStatus,
+        newStatus: 'approved',
+      });
+    }
+
+    return results;
   }
 
   /**

@@ -102,5 +102,16 @@ describe('McpServerHandler', () => {
     const genResult = genUnauthorized?.result as { isError: boolean; content: Array<{ text: string }> };
     expect(genResult.isError).toBe(true);
     expect(genResult.content[0]?.text).toContain('not authorized');
+
+    const batchApprove = await handler.handleRequest({
+      jsonrpc: '2.0',
+      id: 10,
+      method: 'tools/call',
+      params: {
+        name: 'approve_knowledge',
+        arguments: { all: true },
+      },
+    });
+    expect((batchApprove?.result as { isError: boolean }).isError).toBe(false);
   }, 15000);
 });

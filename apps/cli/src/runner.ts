@@ -32,6 +32,7 @@ Commands:
   knowledge list               List knowledge items
   knowledge pending            List knowledge items pending approval
   knowledge approve <id>       Approve a pending knowledge item
+  knowledge approve --all      Approve all pending items (optional --category <cat>)
   ask <question>               Retrieve contextual knowledge and register a Q&A session
   search <query>               Search indexed symbols, knowledge, and docs
   git changes                  Show working tree changes or diff against --base <ref>
@@ -47,6 +48,7 @@ Options:
       --language <code>        Documentation language (e.g., en, pt-BR)
       --output <dir>           Output directory for docs generate
       --yes                    Explicitly authorize physical documentation write
+      --all                    Approve all pending knowledge items in batch
       --base <ref>             Git base ref for diff/status comparison
       --mode <mode>            Search mode (fulltext|structural|semantic|hybrid)
       --category <cat>         Knowledge category filter
@@ -68,6 +70,7 @@ export async function runCli(argv: string[], options: RunCliOptions = {}): Promi
         language: { type: 'string' },
         output: { type: 'string' },
         yes: { type: 'boolean', default: false },
+        all: { type: 'boolean', default: false },
         base: { type: 'string' },
         mode: { type: 'string' },
         category: { type: 'string' },
@@ -122,6 +125,7 @@ async function dispatchCommand(
     language?: string;
     output?: string;
     yes?: boolean;
+    all?: boolean;
     base?: string;
     mode?: string;
     category?: string;
@@ -237,10 +241,26 @@ async function dispatchCommand(
       emit(pending, `Pending items (${pending.length}):\n${pending.map((i) => `- ${i.id}: ${i.title}`).join('\n')}`);
       return 0;
     }
-    if (sub === 'approve' && arg2) {
-      const result = await ctx.knowledgeService.approve(arg2);
-      emit(result, `Approved ${result.itemId} (${result.previousStatus} -> ${result.newStatus})`);
-      return 0;
+    if (sub === 'approve') {
+      if (values.all) {
+        const results = await ctx.knowledgeService.approveAll({
+          category: values.category as KnowledgeCategory | undefined,
+        });
+        emit(
+          { approvedCount: results.length, results },
+          `Approved ${results.length} pending knowledge item(s).`
+        );
+        return 0;
+      }
+
+      if (arg2) {
+        const result = await ctx.knowledgeService.approve(arg2);
+        emit(result, `Approved ${result.itemId} (${result.previousStatus} -> ${result.newStatus})`);
+        return 0;
+      }
+
+      io.stderr("Error: Provide an item ID or pass '--all'.\n");
+      return 1;
     }
   }
 

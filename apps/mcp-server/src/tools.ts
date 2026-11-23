@@ -44,9 +44,15 @@ const registerKnowledgeSchema = z.object({
   symbols: z.array(z.string()).default([]),
 });
 
-const approveKnowledgeSchema = z.object({
-  itemId: z.string().min(1),
-});
+const approveKnowledgeSchema = z
+  .object({
+    itemId: z.string().min(1).optional(),
+    all: z.boolean().optional(),
+    category: KnowledgeCategorySchema.optional(),
+  })
+  .refine((val) => Boolean(val.itemId) || val.all === true, {
+    message: 'Provide either itemId or all: true',
+  });
 
 const gitChangesSchema = z.object({
   baseRef: z.string().optional(),
@@ -224,15 +230,22 @@ export function createMcpTools(): McpToolDefinition[] {
     },
     {
       name: 'approve_knowledge',
-      description: 'Approve a pending inferred knowledge item.',
+      description: 'Approve a pending inferred knowledge item by ID, or approve all pending items.',
       inputSchema: {
         type: 'object',
-        properties: { itemId: { type: 'string' } },
-        required: ['itemId'],
+        properties: {
+          itemId: { type: 'string' },
+          all: { type: 'boolean' },
+          category: { type: 'string' },
+        },
       },
       execute: async (ctx, args) => {
         const parsed = approveKnowledgeSchema.parse(args);
-        return ctx.knowledgeService.approve(parsed.itemId);
+        if (parsed.all) {
+          const approved = await ctx.knowledgeService.approveAll({ category: parsed.category });
+          return { approvedCount: approved.length, results: approved };
+        }
+        return ctx.knowledgeService.approve(parsed.itemId!);
       },
     },
     {

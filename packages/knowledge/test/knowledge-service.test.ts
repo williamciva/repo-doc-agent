@@ -105,6 +105,23 @@ describe('KnowledgeService', () => {
     expect(updated?.approvalStatus).toBe('approved');
   });
 
+  it('should approve all pending items in batch and support category filter', async () => {
+    await service.ingestFromAnalysis(makeMockAnalysis(), makeMockStructure());
+    const initialPending = await service.getPending();
+    expect(initialPending.length).toBeGreaterThan(1);
+
+    const archApproved = await service.approveAll({ category: 'architecture' });
+    expect(archApproved).toHaveLength(1);
+    expect(archApproved[0]?.newStatus).toBe('approved');
+
+    const remainingBeforeAll = await service.getPending();
+    expect(remainingBeforeAll.length).toBe(initialPending.length - 1);
+
+    const restApproved = await service.approveAll();
+    expect(restApproved).toHaveLength(remainingBeforeAll.length);
+    expect(await service.getPending()).toHaveLength(0);
+  });
+
   it('should reject a pending item', async () => {
     const items = await service.ingestFromAnalysis(makeMockAnalysis(), makeMockStructure());
     const pending = items.find((i) => i.approvalStatus === 'pending');

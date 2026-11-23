@@ -56,6 +56,25 @@ describe('RepoDoc CLI', () => {
     expect(buf.getStderr()).toContain('Permission denied');
   });
 
+  it('should support batch approval with knowledge approve --all and validate missing args', async () => {
+    const missingBuf = createBufferIO();
+    const errCode = await runCli(['knowledge', 'approve'], {
+      io: missingBuf.io,
+      inMemory: true,
+    });
+    expect(errCode).toBe(1);
+    expect(missingBuf.getStderr()).toContain('--all');
+
+    const okBuf = createBufferIO();
+    const okCode = await runCli(['knowledge', 'approve', '--all', '--json'], {
+      io: okBuf.io,
+      inMemory: true,
+    });
+    expect(okCode).toBe(0);
+    const parsed = JSON.parse(okBuf.getStdout()) as { approvedCount: number };
+    expect(parsed.approvedCount).toBe(0);
+  });
+
   it('should return exit code 1 for unknown commands', async () => {
     const buf = createBufferIO();
     const code = await runCli(['unknown-cmd'], { io: buf.io, inMemory: true });
