@@ -39,14 +39,16 @@ export class BusinessDocBuilder {
       'functional-capabilities',
       labels.functionalCapabilities,
       moduleItems,
-      labels.noDataAvailable
+      labels.noDataAvailable,
+      ctx.structure.rootPath
     );
 
     const observationsSection = formatKnowledgeItemsSection(
       'observations-qa',
       labels.observationsAndQA,
       observationItems,
-      labels.noDataAvailable
+      labels.noDataAvailable,
+      ctx.structure.rootPath
     );
 
     return buildDocumentFromSections({
@@ -71,13 +73,15 @@ export class BusinessDocBuilder {
         'business-rules',
         labels.businessRulesSection,
         businessRules,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        ctx.structure.rootPath
       ),
       formatKnowledgeItemsSection(
         'business-flows',
         labels.flowsSection,
         flows,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        ctx.structure.rootPath
       ),
     ];
 

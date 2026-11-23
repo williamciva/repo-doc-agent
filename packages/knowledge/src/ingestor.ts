@@ -37,7 +37,7 @@ export class KnowledgeIngestor {
 
     // 4. Symbols: classes, interfaces, functions
     for (const file of analysis.parsedFiles) {
-      const fileSymbolItems = this.buildSymbolItems(file, provenance, now);
+      const fileSymbolItems = this.buildSymbolItems(file, structure.rootPath, provenance, now);
       items.push(...fileSymbolItems);
     }
 
@@ -147,6 +147,7 @@ export class KnowledgeIngestor {
 
   private buildSymbolItems(
     file: ParsedFile,
+    rootPath: string,
     provenance: KnowledgeItem['provenance'],
     now: string
   ): KnowledgeItem[] {
@@ -157,13 +158,14 @@ export class KnowledgeIngestor {
       if (!sym.isExported) continue;
       if (sym.kind === 'variable' || sym.kind === 'constant') continue;
 
+      const relPath = this.toRelativePath(sym.filePath, rootPath);
       const category = this.symbolKindToCategory(sym.kind);
       const title = this.buildSymbolTitle(sym);
 
       const content = [
         `${sym.kind.charAt(0).toUpperCase() + sym.kind.slice(1)}: ${sym.name}`,
         sym.docstring ? `Description: ${sym.docstring}` : '',
-        `Defined in: ${sym.filePath} (line ${sym.lineStart})`,
+        `Defined in: ${relPath} (line ${sym.lineStart})`,
         sym.parentSymbol ? `Belongs to: ${sym.parentSymbol}` : '',
         sym.visibility ? `Visibility: ${sym.visibility}` : '',
       ]
@@ -171,12 +173,12 @@ export class KnowledgeIngestor {
         .join('\n');
 
       const item: KnowledgeItem = {
-        id: this.makeId(sym.id),
+        id: this.makeId(`${relPath}#${sym.parentSymbol ? `${sym.parentSymbol}.` : ''}${sym.name}`),
         category,
         title,
         content,
-        source: sym.filePath,
-        fileReferences: [sym.filePath],
+        source: relPath,
+        fileReferences: [relPath],
         symbols: [sym.name],
         discoveredAt: now,
         updatedAt: now,
@@ -186,7 +188,7 @@ export class KnowledgeIngestor {
         relationships: sym.parentSymbol
           ? [
               {
-                targetId: this.makeId(`${sym.filePath}#${sym.parentSymbol}`),
+                targetId: this.makeId(`${relPath}#${sym.parentSymbol}`),
                 type: 'relates_to',
                 description: `Member of ${sym.parentSymbol}`,
               },
@@ -198,6 +200,15 @@ export class KnowledgeIngestor {
     }
 
     return items;
+  }
+
+  private toRelativePath(filePath: string, rootPath: string): string {
+    const normFile = filePath.replace(/\\/g, '/');
+    const normRoot = rootPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    if (normRoot && normFile.toLowerCase().startsWith(`${normRoot.toLowerCase()}/`)) {
+      return normFile.slice(normRoot.length + 1);
+    }
+    return normFile;
   }
 
   private symbolKindToCategory(kind: SymbolInfo['kind']): KnowledgeCategory {

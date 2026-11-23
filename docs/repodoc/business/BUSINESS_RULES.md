@@ -1,6 +1,6 @@
 # repo-doc-agent — Business Rules & Domain Constraints
 
-> Language: `en` | Depth: `detailed` | Generated at: `2026-11-23T13:02:08.303Z`
+> Language: `en` | Depth: `detailed` | Generated at: `2026-11-23T14:25:08.432Z`
 
 ## Business Rules
 

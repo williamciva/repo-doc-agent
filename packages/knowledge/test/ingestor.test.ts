@@ -104,11 +104,15 @@ describe('KnowledgeIngestor', () => {
     expect(fnItem).toBeUndefined();
   });
 
-  it('should map exported class to components category', () => {
+  it('should map exported class to components category with relative paths', () => {
     const items = ingestor.ingestFromAnalysis(makeMockAnalysis(), makeMockStructure());
     const classItem = items.find((i) => i.title.includes('MyClass'));
     expect(classItem).toBeDefined();
     expect(classItem?.category).toBe('components');
+    expect(classItem?.source).toBe('packages/pkg-a/src/index.ts');
+    expect(classItem?.fileReferences).toEqual(['packages/pkg-a/src/index.ts']);
+    expect(classItem?.content).toContain('Defined in: packages/pkg-a/src/index.ts');
+    expect(classItem?.content).not.toContain('/workspace/');
   });
 
   it('should use inferred provenance from options', () => {

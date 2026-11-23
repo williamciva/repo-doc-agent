@@ -87,6 +87,7 @@ function makeInput(): DocumentationInput {
       category: 'components',
       title: 'Class: RepoDocContext',
       content: 'Central execution context.',
+      fileReferences: ['/workspace/packages/core/src/context.ts'],
     },
     {
       ...baseItem,
@@ -174,6 +175,8 @@ describe('DocumentationEngine', () => {
     expect(overview?.content).toContain('Visão Geral do Projeto');
     expect(overview?.content).toContain('Rastreabilidade');
     expect(components?.content).toContain('Class: RepoDocContext');
+    expect(components?.content).toContain('`packages/core/src/context.ts`');
+    expect(components?.content).not.toContain('/workspace/');
   });
 
   it('should include traceability IDs and exclude unapproved items by default', () => {

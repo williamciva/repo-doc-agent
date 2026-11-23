@@ -56,11 +56,22 @@ export function buildDocumentFromSections(params: {
   };
 }
 
+export function normalizeRelativeRef(ref: string, rootPath?: string): string {
+  const normRef = ref.replace(/\\/g, '/');
+  if (!rootPath) return normRef;
+  const normRoot = rootPath.replace(/\\/g, '/').replace(/\/+$/, '');
+  if (normRoot && normRef.toLowerCase().startsWith(`${normRoot.toLowerCase()}/`)) {
+    return normRef.slice(normRoot.length + 1);
+  }
+  return normRef;
+}
+
 export function formatKnowledgeItemsSection(
   id: string,
   title: string,
   items: KnowledgeItem[],
-  emptyMessage: string
+  emptyMessage: string,
+  rootPath?: string
 ): DocumentSection {
   if (items.length === 0) {
     return {
@@ -78,16 +89,17 @@ export function formatKnowledgeItemsSection(
 
   for (const item of items) {
     sourceItemIds.push(item.id);
-    for (const ref of item.fileReferences) {
+    const relRefs = item.fileReferences.map((f) => normalizeRelativeRef(f, rootPath));
+    for (const ref of relRefs) {
       fileReferences.add(ref);
     }
 
     lines.push(`### ${item.title}`);
     lines.push('');
     lines.push(item.content);
-    if (item.fileReferences.length > 0) {
+    if (relRefs.length > 0) {
       lines.push('');
-      lines.push(`- Sources: ${item.fileReferences.map((f) => `\`${f}\``).join(', ')}`);
+      lines.push(`- Sources: ${relRefs.map((f) => `\`${f}\``).join(', ')}`);
     }
     lines.push('');
   }

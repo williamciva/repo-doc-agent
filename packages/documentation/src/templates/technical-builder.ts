@@ -113,13 +113,15 @@ export class TechnicalDocBuilder {
         'modules',
         labels.modulesSection,
         moduleItems,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
       formatKnowledgeItemsSection(
         'external-dependencies',
         labels.externalDependencies,
         depItems,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
       {
         id: 'internal-dependencies',
@@ -136,13 +138,15 @@ export class TechnicalDocBuilder {
         'decisions',
         labels.decisionsSection,
         decisionItems,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
       formatKnowledgeItemsSection(
         'configurations',
         labels.configurationsSection,
         configItems,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
     ];
 
@@ -159,7 +163,7 @@ export class TechnicalDocBuilder {
   }
 
   private buildComponentsDoc(ctx: BuilderContext): GeneratedDocument {
-    const { itemsByCategory, labels } = ctx;
+    const { itemsByCategory, labels, structure } = ctx;
     const components = itemsByCategory.get('components') ?? [];
     const functions = itemsByCategory.get('functions') ?? [];
 
@@ -168,13 +172,15 @@ export class TechnicalDocBuilder {
         'components',
         labels.componentsSection,
         components,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
       formatKnowledgeItemsSection(
         'functions',
         labels.functionsSection,
         functions,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
     ];
 
@@ -191,31 +197,34 @@ export class TechnicalDocBuilder {
   }
 
   private buildFlowsAndRulesDoc(ctx: BuilderContext): GeneratedDocument {
-    const { itemsByCategory, labels } = ctx;
+    const { itemsByCategory, labels, structure } = ctx;
     const flows = itemsByCategory.get('flows') ?? [];
     const techRules = itemsByCategory.get('technical_rules') ?? [];
     const integrations = itemsByCategory.get('integrations') ?? [];
     const conventions = itemsByCategory.get('conventions') ?? [];
 
     const sections: DocumentSection[] = [
-      formatKnowledgeItemsSection('flows', labels.flowsSection, flows, labels.noDataAvailable),
+      formatKnowledgeItemsSection('flows', labels.flowsSection, flows, labels.noDataAvailable, structure.rootPath),
       formatKnowledgeItemsSection(
         'technical-rules',
         labels.technicalRulesSection,
         techRules,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
       formatKnowledgeItemsSection(
         'integrations',
         labels.integrationsSection,
         integrations,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
       formatKnowledgeItemsSection(
         'conventions',
         labels.conventionsSection,
         conventions,
-        labels.noDataAvailable
+        labels.noDataAvailable,
+        structure.rootPath
       ),
     ];
 
