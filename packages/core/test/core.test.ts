@@ -19,9 +19,11 @@ describe('RepoDoc Core Context', () => {
     expect(context.permissions).toBeDefined();
     expect(context.knowledgeRepo).toBeDefined();
     expect(context.graphRepo).toBeDefined();
+    expect(context.searchIndexRepo).toBeDefined();
     expect(context.knowledgeService).toBeDefined();
     expect(context.documentation).toBeDefined();
     expect(context.gitIntelligence).toBeDefined();
+    expect(context.indexer).toBeDefined();
     expect(context.repository).toBeDefined();
     expect(context.analyzer).toBeDefined();
 

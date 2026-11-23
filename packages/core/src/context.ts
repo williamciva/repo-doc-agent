@@ -11,6 +11,7 @@ import {
   KnowledgeRepository,
   QASessionRepository,
   GraphRepository,
+  SearchIndexRepository,
   DatabaseConnection,
 } from '@repodoc/persistence';
 import { KnowledgeService } from '@repodoc/knowledge';
@@ -21,6 +22,7 @@ import {
 } from '@repodoc/documentation';
 import { DependencyGraph, GraphBuilder } from '@repodoc/dependency-graph';
 import { GitIntelligenceEngine, OutdatedDocReport } from '@repodoc/git-intelligence';
+import { IndexerEngine } from '@repodoc/indexer';
 
 export interface RepoDocContextOptions {
   projectRoot: string;
@@ -37,9 +39,11 @@ export class RepoDocContext {
   public readonly analyzer: AnalyzerEngine;
   public readonly knowledgeRepo: KnowledgeRepository;
   public readonly graphRepo: GraphRepository;
+  public readonly searchIndexRepo: SearchIndexRepository;
   public readonly knowledgeService: KnowledgeService;
   public readonly documentation: DocumentationEngine;
   public readonly gitIntelligence: GitIntelligenceEngine;
+  public readonly indexer: IndexerEngine;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
 
@@ -51,9 +55,11 @@ export class RepoDocContext {
     analyzer: AnalyzerEngine,
     knowledgeRepo: KnowledgeRepository,
     graphRepo: GraphRepository,
+    searchIndexRepo: SearchIndexRepository,
     knowledgeService: KnowledgeService,
     documentation: DocumentationEngine,
     gitIntelligence: GitIntelligenceEngine,
+    indexer: IndexerEngine,
     db: DatabaseConnection,
     logger: Logger
   ) {
@@ -64,9 +70,11 @@ export class RepoDocContext {
     this.analyzer = analyzer;
     this.knowledgeRepo = knowledgeRepo;
     this.graphRepo = graphRepo;
+    this.searchIndexRepo = searchIndexRepo;
     this.knowledgeService = knowledgeService;
     this.documentation = documentation;
     this.gitIntelligence = gitIntelligence;
+    this.indexer = indexer;
     this.db = db;
     this.logger = logger;
   }
@@ -110,6 +118,7 @@ export class RepoDocContext {
 
     const knowledgeRepo = new KnowledgeRepository(db);
     const graphRepo = new GraphRepository(db);
+    const searchIndexRepo = new SearchIndexRepository(db);
     const qaRepo = new QASessionRepository(db);
     const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, {
       approvalMode,
@@ -123,6 +132,10 @@ export class RepoDocContext {
       projectRoot,
       logger,
     });
+    const indexer = new IndexerEngine({
+      repository: searchIndexRepo,
+      logger,
+    });
 
     return new RepoDocContext(
       projectRoot,
@@ -132,9 +145,11 @@ export class RepoDocContext {
       analyzer,
       knowledgeRepo,
       graphRepo,
+      searchIndexRepo,
       knowledgeService,
       documentation,
       gitIntelligence,
+      indexer,
       db,
       logger
     );
@@ -170,6 +185,7 @@ export class RepoDocContext {
     const resolvedLogger = logger ?? new SilentLogger();
     const knowledgeRepo = new KnowledgeRepository(db);
     const graphRepo = new GraphRepository(db);
+    const searchIndexRepo = new SearchIndexRepository(db);
     const qaRepo = new QASessionRepository(db);
     const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, {
       approvalMode: resolvedApprovalMode,
@@ -183,6 +199,10 @@ export class RepoDocContext {
       projectRoot,
       logger: resolvedLogger,
     });
+    const indexer = new IndexerEngine({
+      repository: searchIndexRepo,
+      logger: resolvedLogger,
+    });
 
     return new RepoDocContext(
       projectRoot,
@@ -192,9 +212,11 @@ export class RepoDocContext {
       analyzer,
       knowledgeRepo,
       graphRepo,
+      searchIndexRepo,
       knowledgeService,
       documentation,
       gitIntelligence,
+      indexer,
       db,
       resolvedLogger
     );

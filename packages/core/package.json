@@ -23,6 +23,7 @@
     "@repodoc/dependency-graph": "workspace:*",
     "@repodoc/documentation": "workspace:*",
     "@repodoc/git-intelligence": "workspace:*",
+    "@repodoc/indexer": "workspace:*",
     "@repodoc/knowledge": "workspace:*",
     "@repodoc/permissions": "workspace:*",
     "@repodoc/persistence": "workspace:*",
