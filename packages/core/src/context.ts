@@ -65,10 +65,11 @@ export class RepoDocContext {
   public static async create(options: RepoDocContextOptions): Promise<RepoDocContext> {
     const projectRoot = path.resolve(options.projectRoot);
     const logger = options.logger ?? new ConsoleLogger('info');
-    const approvalMode = options.approvalMode ?? 'manual';
-
     // 1. Load project configuration
     const config = await loadProjectConfig(projectRoot);
+    const configuredApproval =
+      config.knowledge.approval.mode === 'automatic' ? 'auto' : 'manual';
+    const approvalMode = options.approvalMode ?? configuredApproval;
 
     // 2. Initialize Permissions Engine with boundary at projectRoot
     const permissions = new PermissionsEngine({
@@ -100,7 +101,9 @@ export class RepoDocContext {
 
     const knowledgeRepo = new KnowledgeRepository(db);
     const qaRepo = new QASessionRepository(db);
-    const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, { approvalMode });
+    const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, {
+      approvalMode,
+    });
     const documentation = new DocumentationEngine({
       projectRoot,
       permissions,
@@ -124,9 +127,11 @@ export class RepoDocContext {
   public static async createInMemory(
     projectRoot = process.cwd(),
     logger?: Logger,
-    approvalMode: 'auto' | 'manual' = 'manual'
+    approvalMode?: 'auto' | 'manual'
   ): Promise<RepoDocContext> {
     const config = await loadProjectConfig(projectRoot);
+    const resolvedApprovalMode =
+      approvalMode ?? (config.knowledge.approval.mode === 'automatic' ? 'auto' : 'manual');
     const db = new SqliteDatabaseConnection({ path: ':memory:' });
     const migrator = new MigrationManager(db);
     migrator.runMigrations();
@@ -149,7 +154,9 @@ export class RepoDocContext {
     const resolvedLogger = logger ?? new SilentLogger();
     const knowledgeRepo = new KnowledgeRepository(db);
     const qaRepo = new QASessionRepository(db);
-    const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, { approvalMode });
+    const knowledgeService = new KnowledgeService(knowledgeRepo, qaRepo, {
+      approvalMode: resolvedApprovalMode,
+    });
     const documentation = new DocumentationEngine({
       projectRoot,
       permissions,
