@@ -15,7 +15,8 @@
     { "path": "../documentation" },
     { "path": "../dependency-graph" },
     { "path": "../git-intelligence" },
-    { "path": "../indexer" }
+    { "path": "../indexer" },
+    { "path": "../ai-provider" }
   ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]

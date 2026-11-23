@@ -24,6 +24,7 @@ describe('RepoDoc Core Context', () => {
     expect(context.documentation).toBeDefined();
     expect(context.gitIntelligence).toBeDefined();
     expect(context.indexer).toBeDefined();
+    expect(context.aiEngine).toBeDefined();
     expect(context.repository).toBeDefined();
     expect(context.analyzer).toBeDefined();
 

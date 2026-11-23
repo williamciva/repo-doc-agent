@@ -23,6 +23,7 @@ import {
 import { DependencyGraph, GraphBuilder } from '@repodoc/dependency-graph';
 import { GitIntelligenceEngine, OutdatedDocReport } from '@repodoc/git-intelligence';
 import { IndexerEngine } from '@repodoc/indexer';
+import { AIProviderEngine, AIProviderRegistry } from '@repodoc/ai-provider';
 
 export interface RepoDocContextOptions {
   projectRoot: string;
@@ -44,6 +45,7 @@ export class RepoDocContext {
   public readonly documentation: DocumentationEngine;
   public readonly gitIntelligence: GitIntelligenceEngine;
   public readonly indexer: IndexerEngine;
+  public readonly aiEngine: AIProviderEngine;
   public readonly db: DatabaseConnection;
   public readonly logger: Logger;
 
@@ -60,6 +62,7 @@ export class RepoDocContext {
     documentation: DocumentationEngine,
     gitIntelligence: GitIntelligenceEngine,
     indexer: IndexerEngine,
+    aiEngine: AIProviderEngine,
     db: DatabaseConnection,
     logger: Logger
   ) {
@@ -75,6 +78,7 @@ export class RepoDocContext {
     this.documentation = documentation;
     this.gitIntelligence = gitIntelligence;
     this.indexer = indexer;
+    this.aiEngine = aiEngine;
     this.db = db;
     this.logger = logger;
   }
@@ -132,8 +136,10 @@ export class RepoDocContext {
       projectRoot,
       logger,
     });
+    const aiEngine = RepoDocContext.createAIEngine(config, logger);
     const indexer = new IndexerEngine({
       repository: searchIndexRepo,
+      embeddingProvider: aiEngine.asEmbeddingProvider(),
       logger,
     });
 
@@ -150,6 +156,7 @@ export class RepoDocContext {
       documentation,
       gitIntelligence,
       indexer,
+      aiEngine,
       db,
       logger
     );
@@ -199,8 +206,10 @@ export class RepoDocContext {
       projectRoot,
       logger: resolvedLogger,
     });
+    const aiEngine = RepoDocContext.createAIEngine(config, resolvedLogger);
     const indexer = new IndexerEngine({
       repository: searchIndexRepo,
+      embeddingProvider: aiEngine.asEmbeddingProvider(),
       logger: resolvedLogger,
     });
 
@@ -217,9 +226,26 @@ export class RepoDocContext {
       documentation,
       gitIntelligence,
       indexer,
+      aiEngine,
       db,
       resolvedLogger
     );
+  }
+
+  private static createAIEngine(config: ProjectConfig, logger: Logger): AIProviderEngine {
+    const registry = new AIProviderRegistry();
+    try {
+      const resolved = registry.resolveFromConfig(config.ai);
+      return new AIProviderEngine({
+        providers: resolved ? [resolved] : [],
+        logger,
+      });
+    } catch (error) {
+      logger.warn('AI provider could not be initialized from config; continuing in offline mode', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return new AIProviderEngine({ providers: [], logger });
+    }
   }
 
   public async discover(): Promise<ProjectStructure> {
