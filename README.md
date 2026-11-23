@@ -95,17 +95,34 @@ repo-doc-agent/
 - **pnpm** `>= 10` (configured with `pnpm@11.9.0`)
 - **Git** (optional, required for Git intelligence features)
 
-### Install, Build, and Test
+### Install, Build, and Global CLI Setup
 
 ```bash
 pnpm install
-pnpm run build
-pnpm run test
+pnpm run link:global
 ```
 
-You can also run typechecking across all workspace packages:
+`pnpm run link:global` compiles all workspace packages, bundles standalone executables (`dist/repodoc.mjs` and `dist/repodoc-mcp.mjs`), and links `repodoc` and `repodoc-mcp` globally on your machine so you can run them from **any repository directory**.
+
+To unlink later:
 
 ```bash
+pnpm run unlink:global
+```
+
+#### Running with `npx`
+
+Once built (`pnpm run build:all`), you can also invoke the standalone bundle via `npx` from any project directory without global linking:
+
+```bash
+npx --package /absolute/path/to/repo-doc-agent repodoc --help
+```
+
+#### Build & Test Only
+
+```bash
+pnpm run build:all
+pnpm run test
 pnpm run typecheck
 ```
 
@@ -119,36 +136,36 @@ The CLI works **100% offline** for structural analysis, FTS5 search, dependency 
 
 ```bash
 # 1. Show CLI help
-node apps/cli/dist/bin.js --help
+repodoc --help
 
 # 2. Inspect resolved project configuration (secrets are redacted)
-node apps/cli/dist/bin.js config show --json
+repodoc config show --json
 
 # 3. Discover files, parse symbols, ingest knowledge, and populate FTS5 index
-node apps/cli/dist/bin.js analyze
+repodoc analyze
 
 # 4. Inspect pending knowledge items and approve one by ID
-node apps/cli/dist/bin.js knowledge pending
-node apps/cli/dist/bin.js knowledge approve <item-id>
+repodoc knowledge pending
+repodoc knowledge approve <item-id>
 
 # 5. Search symbols, knowledge, and indexed docs
-node apps/cli/dist/bin.js search "PermissionsEngine" --mode fulltext --json
+repodoc search "PermissionsEngine" --mode fulltext --json
 
 # 6. Ask a question (retrieves contextual chunks + opens a Q&A session)
-node apps/cli/dist/bin.js ask "How is write authorization enforced?"
+repodoc ask "How is write authorization enforced?"
 
 # 7. Preview documentation in memory without touching the filesystem
-node apps/cli/dist/bin.js docs preview --depth detailed --language en
+repodoc docs preview --depth detailed --language en
 
 # 8. Generate documentation on disk (requires explicit --yes authorization)
-node apps/cli/dist/bin.js docs generate --yes --depth detailed --language en --output ./docs/repodoc
+repodoc docs generate --yes --depth detailed --language en --output ./docs/repodoc
 
 # 9. Check Git changes and detect outdated documentation
-node apps/cli/dist/bin.js git changes
-node apps/cli/dist/bin.js docs status --base HEAD~1
+repodoc git changes
+repodoc docs status --base HEAD~1
 
 # 10. Build and persist the dependency graph
-node apps/cli/dist/bin.js graph --json
+repodoc graph --json
 ```
 
 > **Authorization rule:** Running `repodoc docs generate` without `--yes` exits with code `2` (`Permission denied`) and writes nothing to disk.
@@ -162,14 +179,27 @@ The MCP server exposes **14 tools**, **5 resources**, and **5 prompts** over JSO
 ### Start Manually
 
 ```bash
-node apps/cli/dist/bin.js mcp start
+repodoc mcp start
 # or directly:
-node apps/mcp-server/dist/bin.js /path/to/target-repo
+repodoc-mcp /path/to/target-repo
 ```
 
 ### Client Configuration (Antigravity, Claude Code, Codex, OpenCode)
 
-Add the following entry to your MCP client configuration file:
+Add the following entry to your MCP client configuration file (if installed globally via `pnpm run link:global`):
+
+```json
+{
+  "mcpServers": {
+    "repodoc": {
+      "command": "repodoc-mcp",
+      "args": ["/absolute/path/to/target-repo"]
+    }
+  }
+}
+```
+
+Or without global installation, pointing directly to the bundled entrypoint:
 
 ```json
 {
@@ -177,7 +207,7 @@ Add the following entry to your MCP client configuration file:
     "repodoc": {
       "command": "node",
       "args": [
-        "/absolute/path/to/repo-doc-agent/apps/mcp-server/dist/bin.js",
+        "/absolute/path/to/repo-doc-agent/dist/repodoc-mcp.mjs",
         "/absolute/path/to/target-repo"
       ]
     }

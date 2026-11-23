@@ -2,16 +2,30 @@
   "name": "repo-doc-agent",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Agnostic platform for repository analysis, software knowledge management, and documentation",
   "packageManager": "pnpm@11.9.0",
+  "bin": {
+    "repodoc": "./dist/repodoc.mjs",
+    "repodoc-mcp": "./dist/repodoc-mcp.mjs"
+  },
   "scripts": {
     "build": "pnpm -r run build",
+    "bundle": "node scripts/bundle.mjs",
+    "build:all": "pnpm run build && pnpm run bundle",
+    "link:global": "pnpm run build:all && npm link",
+    "unlink:global": "npm unlink -g repo-doc-agent",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm -r run typecheck"
   },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "typescript": "^5.7.3"
+  },
   "devDependencies": {
     "@types/node": "^22.13.4",
+    "esbuild": "^0.28.2",
     "typescript": "^5.7.3",
     "vitest": "^3.0.5"
   }

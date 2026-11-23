@@ -95,17 +95,34 @@ repo-doc-agent/
 - **pnpm** `>= 10` (configurado com `pnpm@11.9.0`)
 - **Git** (opcional, necessário para recursos de Git Intelligence)
 
-### Instalação, Build e Testes
+### Instalação, Build e Comando Global
 
 ```bash
 pnpm install
-pnpm run build
-pnpm run test
+pnpm run link:global
 ```
 
-Para verificar apenas a tipagem em todo o workspace:
+O comando `pnpm run link:global` compila todos os pacotes, gera os executáveis standalone (`dist/repodoc.mjs` e `dist/repodoc-mcp.mjs`) e registra os comandos `repodoc` e `repodoc-mcp` globalmente na sua máquina para uso em **qualquer pasta de projeto**.
+
+Para remover o link global posteriormente:
 
 ```bash
+pnpm run unlink:global
+```
+
+#### Executando via `npx`
+
+Após gerar o bundle (`pnpm run build:all`), também é possível executar diretamente de qualquer pasta via `npx` sem instalar globalmente:
+
+```bash
+npx --package /caminho/absoluto/para/repo-doc-agent repodoc --help
+```
+
+#### Apenas Build e Testes
+
+```bash
+pnpm run build:all
+pnpm run test
 pnpm run typecheck
 ```
 
@@ -119,36 +136,36 @@ A CLI funciona **100% offline** para análise estrutural, busca FTS5, grafo de d
 
 ```bash
 # 1. Exibir ajuda
-node apps/cli/dist/bin.js --help
+repodoc --help
 
 # 2. Inspecionar configuração resolvida (segredos são omitidos)
-node apps/cli/dist/bin.js config show --json
+repodoc config show --json
 
 # 3. Descobrir arquivos, analisar símbolos, ingerir conhecimento e indexar no FTS5
-node apps/cli/dist/bin.js analyze
+repodoc analyze
 
 # 4. Listar itens pendentes e aprovar um item por ID
-node apps/cli/dist/bin.js knowledge pending
-node apps/cli/dist/bin.js knowledge approve <item-id>
+repodoc knowledge pending
+repodoc knowledge approve <item-id>
 
 # 5. Buscar símbolos, conhecimento e documentação indexada
-node apps/cli/dist/bin.js search "PermissionsEngine" --mode fulltext --json
+repodoc search "PermissionsEngine" --mode fulltext --json
 
 # 6. Fazer uma pergunta (recupera contexto relevante e registra sessão Q&A)
-node apps/cli/dist/bin.js ask "How is write authorization enforced?"
+repodoc ask "How is write authorization enforced?"
 
 # 7. Gerar preview em memória sem escrever arquivos no disco
-node apps/cli/dist/bin.js docs preview --depth detailed --language en
+repodoc docs preview --depth detailed --language en
 
 # 8. Gravar documentação em disco (exige autorização explícita --yes)
-node apps/cli/dist/bin.js docs generate --yes --depth detailed --language en --output ./docs/repodoc
+repodoc docs generate --yes --depth detailed --language en --output ./docs/repodoc
 
 # 9. Verificar alterações Git e detectar documentação desatualizada
-node apps/cli/dist/bin.js git changes
-node apps/cli/dist/bin.js docs status --base HEAD~1
+repodoc git changes
+repodoc docs status --base HEAD~1
 
 # 10. Construir e persistir o grafo de dependências
-node apps/cli/dist/bin.js graph --json
+repodoc graph --json
 ```
 
 > **Regra de autorização:** executar `repodoc docs generate` sem `--yes` retorna código de saída `2` (`Permission denied`) e não grava nenhum arquivo.
@@ -162,14 +179,27 @@ O servidor MCP expõe **14 tools**, **5 resources** e **5 prompts** via JSON-RPC
 ### Iniciar Manualmente
 
 ```bash
-node apps/cli/dist/bin.js mcp start
+repodoc mcp start
 # ou diretamente:
-node apps/mcp-server/dist/bin.js /caminho/para/o/projeto-alvo
+repodoc-mcp /caminho/para/o/projeto-alvo
 ```
 
 ### Configuração em Clientes MCP (Antigravity, Claude Code, Codex, OpenCode)
 
-Adicione a configuração abaixo ao arquivo MCP do seu cliente:
+Se instalado globalmente via `pnpm run link:global`, adicione a configuração abaixo ao arquivo MCP do seu cliente:
+
+```json
+{
+  "mcpServers": {
+    "repodoc": {
+      "command": "repodoc-mcp",
+      "args": ["/caminho/absoluto/para/o/projeto-alvo"]
+    }
+  }
+}
+```
+
+Ou sem instalação global, apontando diretamente para o bundle gerado:
 
 ```json
 {
@@ -177,7 +207,7 @@ Adicione a configuração abaixo ao arquivo MCP do seu cliente:
     "repodoc": {
       "command": "node",
       "args": [
-        "/caminho/absoluto/para/repo-doc-agent/apps/mcp-server/dist/bin.js",
+        "/caminho/absoluto/para/repo-doc-agent/dist/repodoc-mcp.mjs",
         "/caminho/absoluto/para/o/projeto-alvo"
       ]
     }
